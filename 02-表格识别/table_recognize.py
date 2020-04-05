@@ -6,6 +6,7 @@
  @Description    :
 """
 import cv2
+import numpy as np
 
 
 def run(gray_img):
@@ -33,12 +34,46 @@ def run(gray_img):
 
     mask_img = h_dilate_img + v_dilate_img
 
-    cv2.imshow('thresh_img', thresh_img)
-    cv2.imshow('mask_img', mask_img)
+    # cv2.imshow('thresh_img', thresh_img)
+    # cv2.imshow('mask_img', mask_img)
+    # cv2.waitKey(0)
+    return mask_img
 
-    cv2.waitKey(0)
+
+def get_table_cells(img, img_mask, border=1, min_area=1e3, max_area=1e6):
+    """
+
+    :param img:
+    :param img_mask:
+    :param border:
+    :param min_area:
+    :param max_area:
+    :return:
+    """
+    ret, thresh = cv2.threshold(img_mask, 200, 255, cv2.THRESH_BINARY)  # 二值化
+    img_erode = cv2.dilate(thresh, np.ones((3, 3)), iterations=1)
+
+    _, contours, hierarchy = cv2.findContours(img_erode, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    roi_list = []
+    for i in range(len(contours)):
+        cnt = contours[i]
+        area = cv2.contourArea(cnt)
+        if min_area < area < max_area:
+            x, y, w, h = cv2.boundingRect(cnt)
+            if w > 32 and h > 32:
+                roi = img[y + border:y + h - border, x + border:x + w - border]
+                roi_list.append(roi)
+                print(x, y, w, h)
+
+    return roi_list
 
 
 if __name__ == '__main__':
-    img = cv2.imread('../images/table01.jpg')
-    run(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+    # img = cv2.imread('../images/table01.jpg')
+    image = cv2.imread('../tmp/efg.jpg')
+    image_mask = run(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+    cv2.imwrite('../tmp/efg_mask.jpg', image_mask)
+    cell_list = get_table_cells(image, image_mask)
+    for i, cell in enumerate(cell_list):
+        cv2.imwrite('../tmp/out/{:03d}.jpg'.format(i), cell)
