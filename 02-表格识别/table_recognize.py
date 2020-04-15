@@ -56,6 +56,7 @@ def get_table_cells(img, img_mask, border=1, min_area=1e3, max_area=1e6):
     _, contours, hierarchy = cv2.findContours(img_erode, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     roi_list = []
+    coordinate_list = []  # (y1,y2,x1,x2)
     for i in range(len(contours)):
         cnt = contours[i]
         area = cv2.contourArea(cnt)
@@ -64,9 +65,10 @@ def get_table_cells(img, img_mask, border=1, min_area=1e3, max_area=1e6):
             if w > 32 and h > 32:
                 roi = img[y + border:y + h - border, x + border:x + w - border]
                 roi_list.append(roi)
+                coordinate_list.append([y + border, y + h - border, x + border, x + w - border])
                 print(x, y, w, h)
 
-    return roi_list
+    return roi_list, coordinate_list
 
 
 if __name__ == '__main__':
@@ -74,6 +76,6 @@ if __name__ == '__main__':
     image = cv2.imread('../tmp/efg.jpg')
     image_mask = run(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
     cv2.imwrite('../tmp/efg_mask.jpg', image_mask)
-    cell_list = get_table_cells(image, image_mask)
+    cell_list, _ = get_table_cells(image, image_mask)
     for i, cell in enumerate(cell_list):
         cv2.imwrite('../tmp/out/{:03d}.jpg'.format(i), cell)
